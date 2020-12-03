@@ -12,6 +12,7 @@ import {
     TOUCH,
     Vector3,
     WebGLRenderer,
+    WebGLRenderTarget,
     RepeatWrapping,
     Texture,
     DataTexture
@@ -51,6 +52,10 @@ const bufferWidth = 1024
 const currentMaxVal = 7
 var timer = 0
 var simTime = 0
+
+let particlesLoaded = false
+let sceneReady = false
+let loading = true
 
 width = window.innerWidth
 height = window.innerHeight
@@ -189,7 +194,7 @@ if (WEBGL.isWebGLAvailable()) {
     fillPositionTextures(particle_texture_position, particleNoisePos)
     fillPositionTextures(particle_texture_init_position, particleNoisePos)
 
-    particle_position_var = gpuCompute.addVariable("texturePosition", document.getElementById("sim_shad").textContent, particle_texture_position)
+    particle_position_var = gpuCompute.addVariable("texturePosition", document.getElementById("sim_shad_curl").textContent, particle_texture_position)
     particle_position_var.wrapS = RepeatWrapping
     particle_position_var.wrapT = RepeatWrapping
 
@@ -312,6 +317,41 @@ function fillPositionTextures(texturePosition: DataTexture, initialPositions: Fl
         }
     }
 
+}
+
+function startFromParams(){
+    //to implement
+}
+function restartSimulation() {
+    scene.remove(particle_mesh)
+
+    particlesLoaded = false
+    sceneReady = false
+
+    dispose_particles()
+    dispose_buffers()
+
+    startFromParams()
+}
+
+
+function dispose_particles() {
+    buff_geometry.dispose()
+    particle_mat.dispose()
+}
+
+function dispose_buffers() {
+    simTime = 0
+    particle_position_var.renderTargets.forEach((rt: WebGLRenderTarget) => {
+        rt.texture.dispose()
+        rt.dispose()
+    })
+    particle_position_var_sim.renderTargets.forEach((rt: WebGLRenderTarget) => {
+        rt.texture.dispose()
+        rt.dispose()
+    })
+    particle_texture_position.dispose()
+    //dtVelocity.dispose()
 }
 // function render(){
 //     mesh.rotation.x += 0.1
