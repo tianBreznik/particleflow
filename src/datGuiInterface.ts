@@ -1,11 +1,18 @@
 import {GUI} from "dat.gui";
 
 export enum velocity_attractors {
-    "gravity",
     "aizawaAttractor",
     "thomasAttractor",
+    "chenAttractor",
+    "lotkaVolteraAttractor",
+    "layerAttractor"
 }
 
+export enum noise_simulations {
+    "simplexNoise",
+    "curlNoise",
+    "classicPerlin"
+}
 export const parameters = {
 
     "Time Step": 0.1,
@@ -14,14 +21,15 @@ export const parameters = {
     //"Particle color": - todo
 
     //restart
-    "Simulation Type": `${velocity_attractors.aizawaAttractor}`,
+    "Attractor": `${velocity_attractors.chenAttractor}`,
+    "Base Noise Version": `${noise_simulations.curlNoise}`,
     "Texture Size (Particles)": "512",
     "Square Geometry": false,
     "Square Geometry Scale": 1,
-    "Include Velocity":true
+    "INCLUDE ATTRACTOR?":false
 }
 
-export function initGUI(onChange: () => void, restartSimulation: () => void, resetCamera: () => void) {
+export function buildInterface(onChange: () => void, restartSimulation: () => void, resetCamera: () => void) {
     const gui = new GUI({width: 400})
 
     const resetCameraButton = {
@@ -36,11 +44,19 @@ export function initGUI(onChange: () => void, restartSimulation: () => void, res
     changeableFolder.add(parameters, "Particle Life-time(ms)", 0, 60*30, 5).onChange(onChange)
 
     const restartFolder = gui.addFolder("Static Parameters (Change and restart simulation)")
-    restartFolder.add(parameters,"Simulation Type", {
-        "Gravity": velocity_attractors.gravity,
+    restartFolder.add(parameters,"Attractor", {
         "Aizawa Attractor": velocity_attractors.aizawaAttractor,
         "Thomas Attractor": velocity_attractors.thomasAttractor,
+        "Chen Attractor": velocity_attractors.chenAttractor,
+        "Lotka Voltera Attractor": velocity_attractors.lotkaVolteraAttractor,
+        "Layer Attractor":velocity_attractors.layerAttractor
     })
+    restartFolder.add(parameters,"Base Noise Version", {
+        "Simplex Noise": noise_simulations.simplexNoise,
+        "Curl Noise": noise_simulations.curlNoise,
+        "Classic Perlin Noise":noise_simulations.classicPerlin
+    })
+    restartFolder.add(parameters,"INCLUDE ATTRACTOR?")
     restartFolder.add(parameters, "Texture Size (Particles)", {
         "1": 1,
         "4": 2,

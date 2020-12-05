@@ -18,10 +18,10 @@ import {
     DataTexture
 } from "three"
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls"
-import {GUI} from "dat.gui";
 import * as Stats from 'stats.js'
 import {WEBGL} from "three/examples/jsm/WebGL";
 import {GPUComputationRenderer, Variable} from "three/examples/jsm/misc/GPUComputationRenderer";
+import {parameters, velocity_attractors, noise_simulations, buildInterface} from "./datGuiInterface";
 
 
 
@@ -51,7 +51,7 @@ const bufferHeight = 1024
 const bufferWidth = 1024
 const currentMaxVal = 7
 var timer = 0
-var simTime = 0
+var perlinTick = 0
 
 let particlesLoaded = false
 let sceneReady = false
@@ -60,17 +60,13 @@ let loading = true
 width = window.innerWidth
 height = window.innerHeight
 
-const parameters = {
-    // dynamically changeable
-    "Include Velocity": true,
-}
 particle_mat = new ShaderMaterial({
     uniforms: {
         texturePosition: {
             value: null,
         },
         pointSize: {
-            value:  1.0
+            value:  parameters["Point Size"] * 1.0
         },//temp - experiment
         height:{
             value: height
@@ -100,7 +96,7 @@ particle_mat = new ShaderMaterial({
 
         vec3 position = ( texture2D( texturePosition, vUv ).rgb  );
 
-        gl_PointSize = 1.0;
+        gl_PointSize = pointSize;
         gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
 
     }
@@ -122,6 +118,8 @@ particle_mat = new ShaderMaterial({
 if (WEBGL.isWebGLAvailable()) {
     stats = new Stats()
     document.body.appendChild(stats.dom)
+
+    buildInterface(onChange, restartSimulation, resetCamera)
 
 
     try {
@@ -181,61 +179,6 @@ if (WEBGL.isWebGLAvailable()) {
     controls.touches = {ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN}
     controls.update()
 
-    const particleNoisePos = noisePositions(bufferWidth, bufferHeight, currentMaxVal)
-    const randomBounds = new Float32Array(3)
-    randomBounds[0] = randomBounds[1] = randomBounds[2] = 2 * currentMaxVal
-    gpuCompute = new GPUComputationRenderer(bufferWidth, bufferHeight, renderer)
-
-    particle_texture_position = gpuCompute.createTexture() // (x,y,z) pos + (w) time of life of particle
-    particle_texture_init_position = gpuCompute.createTexture()
-    //add velocity
-    particle_texture_sim = gpuCompute.createTexture()
-
-    fillPositionTextures(particle_texture_position, particleNoisePos)
-    fillPositionTextures(particle_texture_init_position, particleNoisePos)
-
-    particle_position_var = gpuCompute.addVariable("texturePosition", document.getElementById("sim_shad_curl").textContent, particle_texture_position)
-    particle_position_var.wrapS = RepeatWrapping
-    particle_position_var.wrapT = RepeatWrapping
-
-    particle_position_uniforms = particle_position_var.material.uniforms
-    particle_position_uniforms["initialPositions"] = {value: particle_texture_init_position}
-    particle_position_uniforms["simTime"] = {value:simTime}
-    particle_position_uniforms["timeToLive"] = {value: 1200.0}
-    particle_position_uniforms["respawnRandom"] = {value: true}
-    particle_position_uniforms["simTime"] = {value: simTime}
-    particle_position_uniforms["bounds"] = {value: randomBounds}
-    particle_position_uniforms["boundaryScale"] = {value: 3.5}
-    particle_position_uniforms["includeVelocity"] = {value: parameters["Include Velocity"]}
-
-    //console.log(document.getElementById("simulation_shader").textContent)
-    particle_position_var_sim = gpuCompute.addVariable("textureVelocity", document.getElementById("simulation_shader").textContent, particle_texture_sim)
-    particle_position_var_sim.wrapS = RepeatWrapping
-    particle_position_var_sim.wrapT = RepeatWrapping
-
-    const randomVals = new Float32Array(bufferWidth * bufferHeight) // give each particle a random seed
-    for (let i = 0; i < bufferWidth * bufferHeight; i++) {
-        randomVals[i] = Math.random() - 0.5
-    }
-
-    particle_sim_var_uniforms = particle_position_var_sim.material.uniforms
-    particle_sim_var_uniforms["random"] = {value:randomVals}
-    particle_sim_var_uniforms["timestep"] = {value:0.1}
-    // velocityUniforms = velocityVariable.material.uniforms
-    // velocityUniforms["random"] = {value: randomVals}
-    // velocityUniforms["timestep"] = {value: parameters["Time Step"]}
-    // velocityUniforms["normalizeFactor"] = {value: parameters["Normalize Factor"]}
-
-    gpuCompute.setVariableDependencies( particle_position_var, [ particle_position_var, particle_position_var_sim ] )
-    gpuCompute.setVariableDependencies( particle_position_var_sim, [ particle_position_var, particle_position_var_sim ] )
-    //gpuCompute.setVariableDependencies(particle_position_var,[particle_position_var])
-
-    const error = gpuCompute.init()
-    if (error !== null) {
-        console.error( error )
-    }
-    gpuCompute.compute()
-
     //particle positions - normalized
     const p_positions = new Float32Array((width * height) * 3)
     for (let i = 0; i < (width * height); i++) {
@@ -247,13 +190,13 @@ if (WEBGL.isWebGLAvailable()) {
     buff_geometry.setAttribute('position', new BufferAttribute(p_positions, 3))
 
     particle_mesh = new Points(buff_geometry, particle_mat)
-
-    const gui = new GUI({width: 400})
-    const dynamicFolder = gui.addFolder("Noise parameters")
-    dynamicFolder.add(parameters, "Include Velocity")
-    dynamicFolder.open()
-
-    animate()
+    //
+    // const gui = new GUI({width: 400})
+    // const dynamicFolder = gui.addFolder("Noise parameters")
+    // dynamicFolder.add(parameters, "Include Velocity")
+    // dynamicFolder.open()
+    fetchAndStart()
+    //animate()
 
 
 
@@ -267,7 +210,7 @@ function updateParticleMesh() {
     // @ts-ignore
     particle_mesh.material.uniforms.texturePosition.value = gpuCompute.getCurrentRenderTarget(particle_position_var).texture
     // @ts-ignore
-    console.log(particle_mesh.material.uniforms)
+    //console.log(particle_mesh.material.uniforms)
 }
 
 function noisePositions(width: number, height: number, maxVal: number): Float32Array {
@@ -285,12 +228,12 @@ function animate(){
     renderer.setAnimationLoop(() => {
         scene.add(particle_mesh)
         stats.begin()
-        timer=new Date().getTime()
-        simTime += 1
+        timer = new Date().getTime()
+        perlinTick += 1
         particle_position_uniforms["timer"] = {value: timer}
-        particle_position_uniforms["simTime"] = {value: simTime}
+        particle_position_uniforms["perlinTick"] = {value: perlinTick}
         gpuCompute.compute()
-        console.log(particle_texture_sim.image)
+        //console.log(particle_texture_sim.image)
         //console.log(positionUniforms["timer"])
         updateParticleMesh()
         //console.log(particle_mesh.material)
@@ -299,6 +242,7 @@ function animate(){
 
         stats.end()
     })
+
     //requestAnimationFrame(render)
 }
 
@@ -319,9 +263,25 @@ function fillPositionTextures(texturePosition: DataTexture, initialPositions: Fl
 
 }
 
-function startFromParams(){
-    //to implement
+function onChange() {
+    updateSimParams()
+    changePointSizeParam()
 }
+
+function changePointSizeParam(){
+    particle_mat.uniforms["pointSize"] = {value: parameters["Point Size"] * 1.0}
+}
+
+function updateSimParams(){
+    particle_position_uniforms["life-time"] = {value: parameters["Particle Time to Live"]}
+    particle_sim_var_uniforms["timestep"] = {value: parameters["Time Step"]}
+}
+
+function resetCamera() {
+    camera.position.copy(new Vector3(50, 150, 250))
+    camera.lookAt(0, 0, 0)
+}
+
 function restartSimulation() {
     scene.remove(particle_mesh)
 
@@ -331,7 +291,7 @@ function restartSimulation() {
     dispose_particles()
     dispose_buffers()
 
-    startFromParams()
+    fetchAndStart()
 }
 
 
@@ -340,8 +300,85 @@ function dispose_particles() {
     particle_mat.dispose()
 }
 
+function fetchAndStart() {
+    const bufferWidth = Number(parameters["Texture Size (Particles)"])
+    const bufferHeight = Number(parameters["Texture Size (Particles)"])
+    const randomStartingPositions = noisePositions(1024, 1024, 7.0)
+    const randomBounds = new Float32Array(3)
+    randomBounds[0] = randomBounds[1] = randomBounds[2] = 2 * 7.0
+    fetchAndPlay(randomStartingPositions, 1024, 1024, randomBounds)
+
+}
+
+function fetchAndPlay(particleNoisePos: Float32Array, particleBufferWidth: number, particleBufferHeight: number, randomBounds: Float32Array) {
+    let attractor_shader = fetchAttractorShader()
+    let noise_shader = fetchNoiseShader()
+    console.log("bla")
+    console.log(attractor_shader)
+    const squareGeometry = parameters["Square Geometry"]
+    //particles = squareGeometry ? triangles : points
+    gpuCompute = new GPUComputationRenderer(particleBufferWidth, particleBufferHeight, renderer)
+
+    if (isSafari()) {
+        gpuCompute.setDataType(HalfFloatType)
+    }
+
+    particle_texture_position = gpuCompute.createTexture() // (x,y,z) pos + (w) time of life of particle
+    particle_texture_init_position = gpuCompute.createTexture()
+    //add velocity
+    particle_texture_sim = gpuCompute.createTexture()
+
+    fillPositionTextures(particle_texture_position, particleNoisePos)
+    fillPositionTextures(particle_texture_init_position, particleNoisePos)
+
+    particle_position_var = gpuCompute.addVariable("texturePosition", noise_shader, particle_texture_position)
+    particle_position_var.wrapS = RepeatWrapping
+    particle_position_var.wrapT = RepeatWrapping
+
+    particle_position_uniforms = particle_position_var.material.uniforms
+    particle_position_uniforms["initialPositions"] = {value: particle_texture_init_position}
+    particle_position_uniforms["perlinTick"] = {value: perlinTick}
+    particle_position_uniforms["life-time"] = {value: 1200.0}
+    particle_position_uniforms["bounds"] = {value: randomBounds}
+    particle_position_uniforms["includeVelocity"] = {value: parameters["INCLUDE ATTRACTOR?"]}
+
+    //console.log(document.getElementById("simulation_shader").textContent)
+    particle_position_var_sim = gpuCompute.addVariable("textureVelocity", attractor_shader, particle_texture_sim)
+    particle_position_var_sim.wrapS = RepeatWrapping
+    particle_position_var_sim.wrapT = RepeatWrapping
+
+    const randomVals = new Float32Array(bufferWidth * bufferHeight) // give each particle a random seed
+    for (let i = 0; i < bufferWidth * bufferHeight; i++) {
+        randomVals[i] = Math.random() - 0.5
+    }
+
+    particle_sim_var_uniforms = particle_position_var_sim.material.uniforms
+    particle_sim_var_uniforms["timestep"] = {value:0.1}
+    // velocityUniforms = velocityVariable.material.uniforms
+    // velocityUniforms["random"] = {value: randomVals}
+    // velocityUniforms["timestep"] = {value: parameters["Time Step"]}
+    // velocityUniforms["normalizeFactor"] = {value: parameters["Normalize Factor"]}
+
+    gpuCompute.setVariableDependencies( particle_position_var, [ particle_position_var, particle_position_var_sim ] )
+    gpuCompute.setVariableDependencies( particle_position_var_sim, [ particle_position_var, particle_position_var_sim ] )
+    //gpuCompute.setVariableDependencies(particle_position_var,[particle_position_var])
+
+    const error = gpuCompute.init()
+    if (error !== null) {
+        console.error( error )
+    }
+    gpuCompute.compute()
+
+    // gpuCompute.init(renderer, particleBufferWidth, particleBufferHeight, initialPositions, bounds)
+    // particles.init(particleBufferWidth, particleBufferHeight, renderWithTriangles ? parameters["Triangles Scale"] : undefined)
+    //     .then(_ => {
+    //         particlesLoaded = true
+    //     })
+    //
+    animate()
+}
 function dispose_buffers() {
-    simTime = 0
+    perlinTick = 0
     particle_position_var.renderTargets.forEach((rt: WebGLRenderTarget) => {
         rt.texture.dispose()
         rt.dispose()
@@ -359,4 +396,43 @@ function dispose_buffers() {
 //     renderer.render(scene, camera)
 //     requestAnimationFrame(render)
 // }
+
+function fetchAttractorShader() {
+    switch(parameters["Attractor"]) {
+        case `${velocity_attractors.aizawaAttractor}`:
+            return document.getElementById("aizawa_attractor_shader").textContent
+
+        case `${velocity_attractors.thomasAttractor}`:
+            return document.getElementById("thomas_attractor_shader").textContent
+
+        case `${velocity_attractors.chenAttractor}`:
+            return document.getElementById("chen_attractor_shader").textContent
+
+        case `${velocity_attractors.lotkaVolteraAttractor}`:
+            return document.getElementById("lotka_voltera_attractor_shader").textContent
+
+        case `${velocity_attractors.layerAttractor}`:
+            return document.getElementById("layer_attractor_shader").textContent
+
+        default:
+            return document.getElementById("aizawa_attractor_shader").textContent
+    }
+}
+
+function fetchNoiseShader() {
+    switch(parameters["Base Noise Version"]) {
+        case `${noise_simulations.simplexNoise}`:
+            return document.getElementById("simplex_noise_shader").textContent
+
+        case `${noise_simulations.curlNoise}`:
+            return document.getElementById("curl_noise_shader").textContent
+
+        case `${noise_simulations.classicPerlin}`:
+            return document.getElementById("position_shader").textContent
+
+        default:
+            return document.getElementById("simplex_noise_shader").textContent
+
+    }
+}
 
