@@ -36,7 +36,8 @@ export const parameters = {
     "Random Sprite Colors?":true,
     "Sprite textures?": false,
     "Sprite Texture Size": 3.5,
-    "INCLUDE ATTRACTOR?":false
+    "INCLUDE ATTRACTOR?":false,
+    "Background Color": "#080808"
 }
 
 export function buildInterface(onChange: () => void, restartSimulation: () => void) {
@@ -50,6 +51,7 @@ export function buildInterface(onChange: () => void, restartSimulation: () => vo
     //changeableFolder.addColor(parameters, "color").onChange(onChange)
 
     const restartFolder = gui.addFolder("Static Parameters (Change and restart simulation)")
+    restartFolder.addColor(parameters, "Background Color")
     restartFolder.add(parameters,"Start in the shape of:", {
         "Cube": initial_geometry.cube,
         "Sphere": initial_geometry.sphere

@@ -285,7 +285,7 @@ if (WEBGL.isWebGLAvailable()) {
 
     renderer.setSize(width, height)
     renderer.setPixelRatio(window.devicePixelRatio)
-    renderer.setClearColor('#080808')
+    renderer.setClearColor('#080808')//#ffffff
 
     renderer.sortObjects = false
 
@@ -410,34 +410,34 @@ function getSphere( count, size ){
     return data;
 }
 
-function animate(){
-    renderer.setAnimationLoop(() => {
-        scene.add(particle_mesh)
-        stats.begin()
-        timer = new Date().getTime()
-        perlinTick += 1
-        particle_position_uniforms["timer"] = {value: timer}
-        if(parameters["Fading/Dying:"]){
-            //console.log("Faded")
-            particle_mat.uniforms["particle_lifetime"] = {value: particle_mat.uniforms["particle_lifetime"].value - 2.0}
-        }
-        //console.log(particle_mat.uniforms["r"])
-        //console.log(particle_mat.uniforms["g"])
-        //console.log(particle_mat.uniforms["b"])
-        particle_position_uniforms["perlinTick"] = {value: perlinTick}
-        gpuCompute.compute()
-        //console.log(particle_texture_sim.image)
-        //console.log(positionUniforms["timer"])
-        updateParticleMesh()
-        //console.log(particle_mesh.material)
-        renderer.setRenderTarget(null)
-        renderer.render(scene, camera)
-
-        stats.end()
-    })
-
-    //requestAnimationFrame(render)
-}
+// function animate(){
+//     renderer.setAnimationLoop(() => {
+//         scene.add(particle_mesh)
+//         stats.begin()
+//         timer = new Date().getTime()
+//         perlinTick += 1
+//         particle_position_uniforms["timer"] = {value: timer}
+//         if(parameters["Fading/Dying:"]){
+//             //console.log("Faded")
+//             particle_mat.uniforms["particle_lifetime"] = {value: particle_mat.uniforms["particle_lifetime"].value - 2.0}
+//         }
+//         //console.log(particle_mat.uniforms["r"])
+//         //console.log(particle_mat.uniforms["g"])
+//         //console.log(particle_mat.uniforms["b"])
+//         particle_position_uniforms["perlinTick"] = {value: perlinTick}
+//         gpuCompute.compute()
+//         //console.log(particle_texture_sim.image)
+//         //console.log(positionUniforms["timer"])
+//         updateParticleMesh()
+//         //console.log(particle_mesh.material)
+//         renderer.setRenderTarget(null)
+//         renderer.render(scene, camera)
+//
+//         stats.end()
+//     })
+//
+//     //requestAnimationFrame(render)
+// }
 
 function isSafari() {
     return !!navigator.userAgent.match(/Safari/i) && !navigator.userAgent.match(/Chrome/i)
@@ -457,7 +457,6 @@ function fillPositionTextures(texturePosition: DataTexture, initialPositions: Fl
 }
 
 function onChange() {
-    updateSimParams()
     changePointSizeParam()
 }
 
@@ -468,17 +467,11 @@ function changePointSizeParam(){
     sprite_mat.uniforms["g"] = {value: hexToRgb(parameters["color"]).g}
     sprite_mat.uniforms["b"] = {value: hexToRgb(parameters["color"]).b}
     sprite_mat.uniforms["random_color"] = {value: parameters["Random Sprite Colors?"]}
+    particle_sim_var_uniforms["timestep"] = {value: parameters["Time Step"]}
 
     console.log("sprite size" + sprite_mat.uniforms["pointSize"])
-    //console.log("red: " + sprite_mat.uniforms["r"])
-    //console.log("green: " + sprite_mat.uniforms["g"])
-    //console.log("blue: " + sprite_mat.uniforms["b"])
-
 }
 
-function updateSimParams(){
-    particle_sim_var_uniforms["timestep"] = {value: parameters["Time Step"]}
-}
 
 function restartSimulation() {
     scene.remove(particle_mesh)
@@ -506,6 +499,7 @@ function dispose_particles() {
 
 function fetchAndStart() {
 
+    renderer.setClearColor(parameters["Background Color"])
     const bufferWidth = Number(parameters["Texture Size (Particles)"])
     const bufferHeight = Number(parameters["Texture Size (Particles)"])
     if(Number(parameters["Start in the shape of:"]) == initial_geometry.cube){
