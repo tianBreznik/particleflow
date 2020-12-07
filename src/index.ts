@@ -15,13 +15,19 @@ import {
     WebGLRenderTarget,
     RepeatWrapping,
     Texture,
-    DataTexture
+    DataTexture, TextureLoader, Color
 } from "three"
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls"
 import * as Stats from 'stats.js'
 import {WEBGL} from "three/examples/jsm/WebGL";
 import {GPUComputationRenderer, Variable} from "three/examples/jsm/misc/GPUComputationRenderer";
-import {parameters, velocity_attractors, noise_simulations, buildInterface} from "./datGuiInterface";
+import {
+    parameters,
+    velocity_attractors,
+    noise_simulations,
+    buildInterface,
+    initial_geometry
+} from "./datGuiInterface";
 
 
 
@@ -38,6 +44,7 @@ let renderer: WebGLRenderer,
     buff_geometry: BufferGeometry,
     particle_mesh: Points,
     particle_mat: ShaderMaterial,
+    sprite_mat: ShaderMaterial,
     gpuCompute: GPUComputationRenderer,
     particle_texture_init_position:Texture,
     particle_texture_position:Texture,
@@ -60,6 +67,111 @@ let loading = true
 width = window.innerWidth
 height = window.innerHeight
 
+sprite_mat = new ShaderMaterial({
+    uniforms:{
+        texturePosition:{
+            value: null,
+        },
+        color: {
+            value: new Color("0xffffff"),
+        },
+        random_color:{
+            value: parameters["Random Sprite Colors?"],
+        },
+        pointSize: {
+            value:  parameters["Sprite Texture Size"] * 3.0,
+        },
+        sprite_texture: {
+            value: new TextureLoader().load("https://threejs.org/examples/textures/sprites/ball.png")
+        },
+        particle_lifetime:{
+            value: parameters["Particle Life-time(ms)"]
+        },
+        current_life:{
+            value: parameters["Particle Life-time(ms)"]
+        },
+        r:{
+            value:hexToRgb(parameters["color"]).r
+        },
+        g:{
+            value:hexToRgb(parameters["color"]).g
+        },
+        b:{
+            value:hexToRgb(parameters["color"]).b
+        },
+        height:{
+            value: height
+        },
+        width:{
+            value: width
+        }
+    },
+    vertexShader:`
+        uniform sampler2D texturePosition;
+        uniform float pointSize;
+        uniform float height;
+        uniform float width;
+        varying vec2 vUv;
+        
+        attribute vec3 customColor;
+        //attribute vec3 offset;
+        attribute float alpha;
+
+        varying float vAlpha;
+        varying vec3 vColor;
+
+        // Pseudo random number generator
+        float rand(vec2 co)
+        {
+            return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+        }
+
+
+        void main()
+        {
+            vColor = customColor;
+            vAlpha = alpha;
+            vUv = position.xy + vec2( 0.5 / width, 0.5 / height );
+        
+            vec3 position = ( texture2D( texturePosition, vUv ).rgb  );
+        
+            gl_PointSize = pointSize;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+        
+        }
+    `,
+    fragmentShader: `
+        precision highp float;
+        uniform vec3 color;
+        uniform sampler2D sprite_texture;
+        uniform bool random_color;
+        uniform float r;
+        uniform float g;
+        uniform float b;
+        
+        varying vec3 vColor;
+        varying float vAlpha;
+        
+        float map(float value, float min1, float max1, float min2, float max2) {
+            return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+        }
+        
+        void main() {
+            float red = map(r, 0.0, 255.0, 0.0, 1.0);
+            float green = map(g, 0.0, 255.0, 0.0, 1.0);
+            float blue = map(b, 0.0, 255.0, 0.0, 1.0);
+            vec3 set_color = vec3(red,green,blue);
+            
+            if(!random_color){
+                gl_FragColor = vec4( color * set_color, vAlpha );
+            }
+            else{
+                gl_FragColor = vec4( color * vColor, vAlpha );
+            }
+            gl_FragColor = gl_FragColor * texture2D( sprite_texture, gl_PointCoord );
+        }`,
+
+})
 particle_mat = new ShaderMaterial({
     uniforms: {
         texturePosition: {
@@ -68,6 +180,21 @@ particle_mat = new ShaderMaterial({
         pointSize: {
             value:  parameters["Point Size"] * 1.0
         },//temp - experiment
+        particle_lifetime:{
+            value: parameters["Particle Life-time(ms)"]
+        },
+        current_life:{
+            value: parameters["Particle Life-time(ms)"]
+        },
+        r:{
+            value:hexToRgb(parameters["color"]).r
+        },
+        g:{
+            value:hexToRgb(parameters["color"]).g
+        },
+        b:{
+            value:hexToRgb(parameters["color"]).b
+        },
         height:{
             value: height
         },
@@ -81,17 +208,18 @@ particle_mat = new ShaderMaterial({
     uniform float height;
     uniform float width;
     varying vec2 vUv;
+    
 
     // Pseudo random number generator
     float rand(vec2 co)
     {
         return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
     }
+    
 
 
     void main()
     {
-
         vUv = position.xy + vec2( 0.5 / width, 0.5 / height );
 
         vec3 position = ( texture2D( texturePosition, vUv ).rgb  );
@@ -102,9 +230,19 @@ particle_mat = new ShaderMaterial({
     }
   `,
     fragmentShader: `
+    uniform float particle_lifetime;
+    uniform float current_life;
+    uniform float r;
+    uniform float g;
+    uniform float b;
+    float map(float value, float min1, float max1, float min2, float max2) {
+        return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+    }
+    float opacified_life;
     void main()
     {
-        gl_FragColor = vec4( 0.2,0.1,0.8,1.0 );
+        opacified_life = map(particle_lifetime, 0.0, current_life, 0.0, 1.0);
+        gl_FragColor = vec4( 0.2,0.1,0.8,opacified_life);
         gl_FragColor *= 1.5;
     }`,
     blending: AdditiveBlending,
@@ -119,7 +257,7 @@ if (WEBGL.isWebGLAvailable()) {
     stats = new Stats()
     document.body.appendChild(stats.dom)
 
-    buildInterface(onChange, restartSimulation, resetCamera)
+    buildInterface(onChange, restartSimulation)
 
 
     try {
@@ -181,20 +319,33 @@ if (WEBGL.isWebGLAvailable()) {
 
     //particle positions - normalized
     const p_positions = new Float32Array((width * height) * 3)
+    const colors = new Float32Array((width * height) * 3);
+    //const sizes = new Float32Array(1000);
+    const alphas = new Float32Array((width * height));
     for (let i = 0; i < (width * height); i++) {
         p_positions[i * 3] = (i % width) / width
         p_positions[i * 3 + 1] = (i / width) / height
+
+        //randomize sprite colors
+        colors[i * 3 + 0] = Math.random();
+        colors[i * 3 + 1] = Math.random();
+        colors[i * 3 + 2] = Math.random();
+        //console.log(colors[i*3] + ', ' + colors[i*3+1] + ', ' + colors[i*3+2])
+
+        //size and opacity
+        //sizes[i] = 300;
+        alphas[i] = 0.5;
     }
+
 
     buff_geometry = new BufferGeometry()
     buff_geometry.setAttribute('position', new BufferAttribute(p_positions, 3))
+    buff_geometry.setAttribute( 'customColor', new BufferAttribute( colors, 3 ) )
+    //buff_geometry.setAttribute( 'size', new BufferAttribute( sizes, 1 ) );
+    buff_geometry.setAttribute( 'alpha', new BufferAttribute( alphas, 1 ) )
 
-    particle_mesh = new Points(buff_geometry, particle_mat)
-    //
-    // const gui = new GUI({width: 400})
-    // const dynamicFolder = gui.addFolder("Noise parameters")
-    // dynamicFolder.add(parameters, "Include Velocity")
-    // dynamicFolder.open()
+    //particle_mesh = new Points(buff_geometry, particle_mat)
+
     fetchAndStart()
     //animate()
 
@@ -224,6 +375,41 @@ function noisePositions(width: number, height: number, maxVal: number): Float32A
     return randomData
 }
 
+Math.cbrt = Math.cbrt || function(x) {
+    var y = Math.pow(Math.abs(x), 1/3);
+    return x < 0 ? -y : y;
+};
+
+
+function getPoint(v,size)
+{
+    var phi = Math.random() * 2 * Math.PI;
+    var costheta = Math.random() * 2 -1;
+    var u = Math.random();
+
+    var theta = Math.acos( costheta );
+    var r = size * Math.cbrt( u );
+
+    v.x = r * Math.sin( theta) * Math.cos( phi );
+    v.y = r * Math.sin( theta) * Math.sin( phi );
+    v.z = r * Math.cos( theta );
+    return v;
+}
+
+function getSphere( count, size ){
+    var len = count * 4;
+    var data = new Float32Array( len );
+    var p = new Vector3();
+    for( var i = 0; i < len; i+=4 )
+    {
+        getPoint( p, size );
+        data[ i     ] = p.x;
+        data[ i + 1 ] = p.y;
+        data[ i + 2 ] = p.z;
+    }
+    return data;
+}
+
 function animate(){
     renderer.setAnimationLoop(() => {
         scene.add(particle_mesh)
@@ -231,6 +417,13 @@ function animate(){
         timer = new Date().getTime()
         perlinTick += 1
         particle_position_uniforms["timer"] = {value: timer}
+        if(parameters["Fading/Dying:"]){
+            //console.log("Faded")
+            particle_mat.uniforms["particle_lifetime"] = {value: particle_mat.uniforms["particle_lifetime"].value - 2.0}
+        }
+        //console.log(particle_mat.uniforms["r"])
+        //console.log(particle_mat.uniforms["g"])
+        //console.log(particle_mat.uniforms["b"])
         particle_position_uniforms["perlinTick"] = {value: perlinTick}
         gpuCompute.compute()
         //console.log(particle_texture_sim.image)
@@ -270,16 +463,21 @@ function onChange() {
 
 function changePointSizeParam(){
     particle_mat.uniforms["pointSize"] = {value: parameters["Point Size"] * 1.0}
+    sprite_mat.uniforms["pointSize"] = {value: parameters["Sprite Texture Size"] * 1.0}
+    sprite_mat.uniforms["r"] = {value: hexToRgb(parameters["color"]).r}
+    sprite_mat.uniforms["g"] = {value: hexToRgb(parameters["color"]).g}
+    sprite_mat.uniforms["b"] = {value: hexToRgb(parameters["color"]).b}
+    sprite_mat.uniforms["random_color"] = {value: parameters["Random Sprite Colors?"]}
+
+    console.log("sprite size" + sprite_mat.uniforms["pointSize"])
+    //console.log("red: " + sprite_mat.uniforms["r"])
+    //console.log("green: " + sprite_mat.uniforms["g"])
+    //console.log("blue: " + sprite_mat.uniforms["b"])
+
 }
 
 function updateSimParams(){
-    particle_position_uniforms["life-time"] = {value: parameters["Particle Time to Live"]}
     particle_sim_var_uniforms["timestep"] = {value: parameters["Time Step"]}
-}
-
-function resetCamera() {
-    camera.position.copy(new Vector3(50, 150, 250))
-    camera.lookAt(0, 0, 0)
 }
 
 function restartSimulation() {
@@ -291,6 +489,12 @@ function restartSimulation() {
     dispose_particles()
     dispose_buffers()
 
+    sprite_mat.uniforms["r"] = {value: hexToRgb(parameters["color"]).r}
+    sprite_mat.uniforms["g"] = {value: hexToRgb(parameters["color"]).g}
+    sprite_mat.uniforms["b"] = {value: hexToRgb(parameters["color"]).b}
+    sprite_mat.uniforms["pointSize"] = {value: parameters["Sprite Texture Size"]}
+    //particle_mat.uniforms["particle_lifetime"].value = parameters["Particle Life-time(ms)"]
+    console.log("sprite size" + sprite_mat.uniforms["pointSize"].value)
     fetchAndStart()
 }
 
@@ -301,13 +505,21 @@ function dispose_particles() {
 }
 
 function fetchAndStart() {
+
     const bufferWidth = Number(parameters["Texture Size (Particles)"])
     const bufferHeight = Number(parameters["Texture Size (Particles)"])
-    const randomStartingPositions = noisePositions(1024, 1024, 7.0)
-    const randomBounds = new Float32Array(3)
-    randomBounds[0] = randomBounds[1] = randomBounds[2] = 2 * 7.0
-    fetchAndPlay(randomStartingPositions, 1024, 1024, randomBounds)
-
+    if(Number(parameters["Start in the shape of:"]) == initial_geometry.cube){
+        const randomStartingPositions = noisePositions(1024, 1024, 7.0)
+        const randomBounds = new Float32Array(3)
+        randomBounds[0] = randomBounds[1] = randomBounds[2] = 2 * 7.0
+        fetchAndPlay(randomStartingPositions, 1024, 1024, randomBounds)
+    }
+    else if(Number(parameters["Start in the shape of:"]) == initial_geometry.sphere){
+        const spherePos = getSphere( bufferWidth * bufferHeight, 7 )
+        const randomBounds = new Float32Array(3)
+        randomBounds[0] = randomBounds[1] = randomBounds[2] = 2 * 7.0
+        fetchAndPlay(spherePos, bufferWidth, bufferHeight, randomBounds)
+    }
 }
 
 function fetchAndPlay(particleNoisePos: Float32Array, particleBufferWidth: number, particleBufferHeight: number, randomBounds: Float32Array) {
@@ -315,17 +527,16 @@ function fetchAndPlay(particleNoisePos: Float32Array, particleBufferWidth: numbe
     let noise_shader = fetchNoiseShader()
     console.log("bla")
     console.log(attractor_shader)
-    const squareGeometry = parameters["Square Geometry"]
-    //particles = squareGeometry ? triangles : points
     gpuCompute = new GPUComputationRenderer(particleBufferWidth, particleBufferHeight, renderer)
 
     if (isSafari()) {
         gpuCompute.setDataType(HalfFloatType)
     }
+    const render_sprites = parameters["Sprite textures?"]
+    particle_mesh =  render_sprites ?  new Points(buff_geometry, sprite_mat) :  new Points(buff_geometry, particle_mat)
 
     particle_texture_position = gpuCompute.createTexture() // (x,y,z) pos + (w) time of life of particle
     particle_texture_init_position = gpuCompute.createTexture()
-    //add velocity
     particle_texture_sim = gpuCompute.createTexture()
 
     fillPositionTextures(particle_texture_position, particleNoisePos)
@@ -338,8 +549,7 @@ function fetchAndPlay(particleNoisePos: Float32Array, particleBufferWidth: numbe
     particle_position_uniforms = particle_position_var.material.uniforms
     particle_position_uniforms["initialPositions"] = {value: particle_texture_init_position}
     particle_position_uniforms["perlinTick"] = {value: perlinTick}
-    particle_position_uniforms["life-time"] = {value: 1200.0}
-    particle_position_uniforms["bounds"] = {value: randomBounds}
+    particle_position_uniforms["life_time"] = {value: parameters["Particle Life-time(ms)"]}
     particle_position_uniforms["includeVelocity"] = {value: parameters["INCLUDE ATTRACTOR?"]}
 
     //console.log(document.getElementById("simulation_shader").textContent)
@@ -354,14 +564,9 @@ function fetchAndPlay(particleNoisePos: Float32Array, particleBufferWidth: numbe
 
     particle_sim_var_uniforms = particle_position_var_sim.material.uniforms
     particle_sim_var_uniforms["timestep"] = {value:0.1}
-    // velocityUniforms = velocityVariable.material.uniforms
-    // velocityUniforms["random"] = {value: randomVals}
-    // velocityUniforms["timestep"] = {value: parameters["Time Step"]}
-    // velocityUniforms["normalizeFactor"] = {value: parameters["Normalize Factor"]}
 
     gpuCompute.setVariableDependencies( particle_position_var, [ particle_position_var, particle_position_var_sim ] )
     gpuCompute.setVariableDependencies( particle_position_var_sim, [ particle_position_var, particle_position_var_sim ] )
-    //gpuCompute.setVariableDependencies(particle_position_var,[particle_position_var])
 
     const error = gpuCompute.init()
     if (error !== null) {
@@ -369,13 +574,33 @@ function fetchAndPlay(particleNoisePos: Float32Array, particleBufferWidth: numbe
     }
     gpuCompute.compute()
 
-    // gpuCompute.init(renderer, particleBufferWidth, particleBufferHeight, initialPositions, bounds)
-    // particles.init(particleBufferWidth, particleBufferHeight, renderWithTriangles ? parameters["Triangles Scale"] : undefined)
-    //     .then(_ => {
-    //         particlesLoaded = true
-    //     })
-    //
-    animate()
+    //animate()
+    renderer.setAnimationLoop(() => {
+        scene.add(particle_mesh)
+        stats.begin()
+        timer = new Date().getTime()
+        perlinTick += 1
+        particle_position_uniforms["timer"] = {value: timer}
+        if(parameters["Fading/Dying:"]){
+            //console.log("Faded")
+            particle_mat.uniforms["particle_lifetime"] = {value: particle_mat.uniforms["particle_lifetime"].value - 2.0}
+            sprite_mat.uniforms["particle_lifetime"] = {value: particle_mat.uniforms["particle_lifetime"].value - 2.0}
+        }
+        //console.log(particle_mat.uniforms["r"])
+        //console.log(particle_mat.uniforms["g"])
+        //console.log(particle_mat.uniforms["b"])
+        particle_position_uniforms["perlinTick"] = {value: perlinTick}
+        gpuCompute.compute()
+        //console.log(particle_texture_sim.image)
+        //console.log(positionUniforms["timer"])
+        updateParticleMesh()
+        //console.log(particle_mesh.material)
+        renderer.setRenderTarget(null)
+        renderer.render(scene, camera)
+
+        stats.end()
+    })
+
 }
 function dispose_buffers() {
     perlinTick = 0
@@ -388,14 +613,7 @@ function dispose_buffers() {
         rt.dispose()
     })
     particle_texture_position.dispose()
-    //dtVelocity.dispose()
 }
-// function render(){
-//     mesh.rotation.x += 0.1
-//     mesh.rotation.y += 0.1                                                                                                     ,
-//     renderer.render(scene, camera)
-//     requestAnimationFrame(render)
-// }
 
 function fetchAttractorShader() {
     switch(parameters["Attractor"]) {
@@ -434,5 +652,14 @@ function fetchNoiseShader() {
             return document.getElementById("simplex_noise_shader").textContent
 
     }
+}
+
+function hexToRgb(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
 }
 

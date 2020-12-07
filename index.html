@@ -195,7 +195,7 @@ void main() {
 <script type="glsl" id="position_shader">
     uniform float timer;
     uniform bool includeVelocity;
-    uniform float simTime;
+    uniform float perlinTick;
 vec3 mod289(vec3 x)
 {
   return x - floor(x * (1.0 / 289.0)) * 289.0;
@@ -294,18 +294,19 @@ float cnoise(vec3 P)
         vec2 uv = gl_FragCoord.xy/resolution.xy;
         vec3 tmpPos = texture2D( texturePosition, uv).xyz;
         vec3 velocity = texture2D(textureVelocity, uv).xyz;
+        float tmpLife = texture2D(texturePosition, uv).w;
         vec3 pos = tmpPos;
+
+        float life = tmpLife + 1.0;
 
         if(includeVelocity){
           pos = mix(pos, pos+velocity, 0.5);
         }
 
-        pos += cnoise(vec3(pos.x + simTime,pos.y + 1.352*simTime,pos.z+12.352*simTime)) * 0.5;
-
-
+        pos += cnoise(vec3(pos.x + perlinTick,pos.y + 1.352*perlinTick,pos.z+12.352*perlinTick)) * 0.5;
 
         // Write new position out
-        gl_FragColor = vec4(pos, 0.5);
+        gl_FragColor = vec4(pos, 0.0);
         //gl_FragColor = vec4(1,0,0,1);
     }
 </script>
@@ -459,6 +460,8 @@ float cnoise(vec3 P)
     // simulation
     uniform float timer;
     uniform bool includeVelocity;
+    uniform float lifeTime;
+    uniform float perlinTick;
 
     vec3 mod289(vec3 x) {
   return x - floor(x * (1.0 / 289.0)) * 289.0;
@@ -585,7 +588,10 @@ void main() {
   vec2 uv = gl_FragCoord.xy/resolution.xy;
   vec3 tmpPos = texture2D( texturePosition, uv).xyz;
   vec3 velocity = texture2D(textureVelocity, uv).xyz;
+  float tmpLife = texture2D(texturePosition, uv).w;
   vec3 pos = tmpPos;
+
+  float life = tmpLife + 1.0;
 
   if(includeVelocity){
      pos = mix(pos, pos+velocity, 0.5);

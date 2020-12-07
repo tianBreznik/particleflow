@@ -1,4 +1,5 @@
 import {GUI} from "dat.gui";
+import {Vector3} from "three"
 
 export enum velocity_attractors {
     "aizawaAttractor",
@@ -6,6 +7,11 @@ export enum velocity_attractors {
     "chenAttractor",
     "lotkaVolteraAttractor",
     "layerAttractor"
+}
+
+export enum initial_geometry {
+    "cube",
+    "sphere"
 }
 
 export enum noise_simulations {
@@ -16,34 +22,38 @@ export enum noise_simulations {
 export const parameters = {
 
     "Time Step": 0.1,
-    "Point Size": 2.0,
+    "Point Size": 1.0,
     "Particle Life-time(ms)": 1200.0,
+    "Fading/Dying:": false,
+    "color": "#08e1ff",
     //"Particle color": - todo
 
     //restart
     "Attractor": `${velocity_attractors.chenAttractor}`,
-    "Base Noise Version": `${noise_simulations.curlNoise}`,
+    "Base Noise Version": `${noise_simulations.simplexNoise}`,
+    "Start in the shape of:": `${initial_geometry.sphere}`,
     "Texture Size (Particles)": "512",
-    "Square Geometry": false,
-    "Square Geometry Scale": 1,
+    "Random Sprite Colors?":true,
+    "Sprite textures?": false,
+    "Sprite Texture Size": 3.5,
     "INCLUDE ATTRACTOR?":false
 }
 
-export function buildInterface(onChange: () => void, restartSimulation: () => void, resetCamera: () => void) {
+export function buildInterface(onChange: () => void, restartSimulation: () => void) {
     const gui = new GUI({width: 400})
 
-    const resetCameraButton = {
-        "Reset Camera": () => resetCamera()
-    }
-
-    gui.add(resetCameraButton, "Reset Camera")
 
     const changeableFolder = gui.addFolder("Changeable")
     changeableFolder.add(parameters, "Time Step", 0.01, 1, 0.001).onChange(onChange)
     changeableFolder.add(parameters, "Point Size", 1.0, 5.0, 1).onChange(onChange)
-    changeableFolder.add(parameters, "Particle Life-time(ms)", 0, 60*30, 5).onChange(onChange)
+    changeableFolder.add(parameters, "Fading/Dying:").onChange(onChange)
+    //changeableFolder.addColor(parameters, "color").onChange(onChange)
 
     const restartFolder = gui.addFolder("Static Parameters (Change and restart simulation)")
+    restartFolder.add(parameters,"Start in the shape of:", {
+        "Cube": initial_geometry.cube,
+        "Sphere": initial_geometry.sphere
+    })
     restartFolder.add(parameters,"Attractor", {
         "Aizawa Attractor": velocity_attractors.aizawaAttractor,
         "Thomas Attractor": velocity_attractors.thomasAttractor,
@@ -69,8 +79,17 @@ export function buildInterface(onChange: () => void, restartSimulation: () => vo
         "4096^2 (16,777,216)": 4096,
         "8192^2 (67,108,864)": 8192
     })
-    restartFolder.add(parameters, "Square Geometry")
-    restartFolder.add(parameters, "Square Geometry Scale", 0.1, 10, 0.1)
+    restartFolder.add(parameters, "Sprite textures?")
+    restartFolder.add(parameters, "Particle Life-time(ms)", 0, 60*30, 5)
+    //restartFolder.addColor(parameters, "color").onChange(function() {
+    //    console.log(parameters.color)
+    //})
+
+    const spriteFolder = gui.addFolder("Sprite Settings/Changeable")
+    spriteFolder.add(parameters, "Random Sprite Colors?").onChange(onChange)
+    spriteFolder.addColor(parameters, "color").onChange(onChange)
+    spriteFolder.add(parameters, "Sprite Texture Size", 0.1, 10, 0.5).onChange(onChange)
+
 
 
     const restartButton = {
@@ -81,4 +100,7 @@ export function buildInterface(onChange: () => void, restartSimulation: () => vo
     restartFolder.open()
     changeableFolder.open()
 }
+
+
+
 
