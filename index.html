@@ -14,17 +14,18 @@
             /* Fallback for web browsers that don't support RGBa */
             background-color: rgb(0, 0, 0);
             /* RGBa with 0.6 opacity */
-            background-color: rgba(0, 0, 0, 0.6);
+            background-color: rgba(255, 255, 255, 0.85);
             /* For IE 5.5 - 7*/
             filter:progid:DXImageTransform.Microsoft.gradient(startColorstr=#99000000, endColorstr=#99000000);
             /* For IE 8*/
             -ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr=#99000000, endColorstr=#99000000)";
-            border: 1px solid #fff;
+            border: 1px solid #000000;
             width: 200px;
             padding: 10px;
-            color: #fff;
+            color: #000000;
             text-align: justify;
             font-size: 11px;
+            font-family: Gigi;
         }
     </style>
 </head>
@@ -58,34 +59,30 @@ void main() {
     gl_FragColor = vec4(velocity, 1.0);
 }
 </script>
-<script type="glsl" id="aizawa_attractor_shader">
-// inspired from https://fusefactory.github.io/openfuse/strange%20attractors/particle%20system/Strange-Attractors-GPU/
+<script type="glsl" id="halvorsen_attractor_shader">
+// adapted from https://www.dynamicmath.xyz/strange-attractors/
 
 uniform float timestep;
 uniform float normalizeFactor;
 
-// Aizawa Attractor parameters
-float a = 0.95;
-float b = 0.7;
-float c = 0.6;
-float d = 3.5;
-float e = 0.25;
-float f = 0.1;
+// halvorsen Attractor parameters
+float a = 1.89;
+
 
 void main() {
 
     vec2 uv = gl_FragCoord.xy / resolution.xy;
 
-    vec3 pos = texture2D(texturePosition, uv).xyz;
+    vec3 position = texture2D(texturePosition, uv).xyz;
 
     // Previous positions
-    float x = pos.x;
-    float y = pos.y;
-    float z = pos.z;
+    float x = position.x;
+    float y = position.y;
+    float z = position.z;
 
-    float dx = ((z-b) * x - d*y);
-    float dy = (d * x + (z-b) * y);
-    float dz = (c + a*z - (z*z*z) / 3.0) - (x*x + y*y)*(1.0+e*z) + f * z * (x*x*x);
+    float dx = -a*x - 4.0*y - 4.0*z - y*y;
+    float dy = -a*y - 4.0*z - 4.0*x - z*z;
+    float dz = -a*z - 4.0*x - 4.0*y - x*x;
 
     vec3 velocity = vec3(dx, dy, dz) * timestep;
     velocity = mix(velocity, normalize(velocity), normalizeFactor);
@@ -99,24 +96,25 @@ uniform float normalizeFactor;
 uniform float timestep;
 
 // Chen Attractor parameters
-float a = 35.0;
-float b = 8.0/3.0;
-float c = 28.0;
+float a = 5.0;
+float b = -10.0;
+float c = -0.38;
+//float d = -1.0;
 
 void main() {
 
     vec2 uv = gl_FragCoord.xy / resolution.xy;
 
-    vec3 pos = texture2D(texturePosition, uv).xyz;
+    vec3 position = texture2D(texturePosition, uv).xyz;
 
     // Previous positions
-    float x = pos.x;
-    float y = pos.y;
-    float z = pos.z;
+    float x = position.x;
+    float y = position.y;
+    float z = position.z;
 
-    float dx = (a * (y - x));
-    float dy = (c-a)*x-x*z+c*y;
-    float dz = x*y-b*z;
+    float dx = a*x - y*z;
+    float dy = b*y + x*z;
+    float dz = c*z + (x*y)/3.0;
 
     vec3  velocity = vec3(dx, dy, dz) * timestep * 0.1;
     velocity = mix(velocity, normalize(velocity), normalizeFactor);
@@ -124,30 +122,66 @@ void main() {
     gl_FragColor = vec4(velocity, 1.0);
 }
 </script>
-<script type="glsl" id="lotka_voltera_attractor_shader">
-//addapted from http://www.3d-meier.de/tut5a/Seite43.html
+<script type="glsl" id="lu_chen_attractor_shader">
+//addapted from http://www.3d-meier.de/tut5a/Seite42.html
 uniform float normalizeFactor;
 uniform float timestep;
 
-//Lotka Voltera Attractor parameters
-float a = 2.9851;
+// Chen Attractor parameters
+float a = 40.0;
 float b = 3.0;
-float c = 2.0;
+float c = 28.0;
+float d = 5.51;
+float e = 0.0;
+
+float g_of_x(float x_i){
+    return e * x_i + (d+e)*(abs(x_i+1.0)-abs(x_i-1.0));
+}
+void main() {
+
+    vec2 uv = gl_FragCoord.xy / resolution.xy;
+
+    vec3 position = texture2D(texturePosition, uv).xyz;
+
+    // Previous positions
+    float x = position.x;
+    float y = position.y;
+    float z = position.z;
+
+    float dx = (a*(y-x))/12.5;
+    float dy = ((c-a)*x - x*z + c*y)/12.5;
+    float dz = (x*y-b*z)/12.5;
+
+    vec3  velocity = vec3(dx, dy, dz) * timestep * 0.1;
+    velocity = mix(velocity, normalize(velocity), normalizeFactor);
+
+    gl_FragColor = vec4(velocity, 1.0);
+}
+</script>
+<script type="glsl" id="four_wing_attractor_shader">
+//addapted from https://www.dynamicmath.xyz/strange-attractors/
+uniform float normalizeFactor;
+uniform float timestep;
+
+//Four wing Attractor parameters
+float a = 0.2;
+float b = 0.01;
+float c = -0.4;
 
 void main() {
 
     vec2 uv = gl_FragCoord.xy / resolution.xy;
 
-    vec3 pos = texture2D(texturePosition, uv).xyz;
+    vec3 position = texture2D(texturePosition, uv).xyz;
 
     // Previous positions
-    float x = pos.x;
-    float y = pos.y;
-    float z = pos.z;
+    float x = position.x;
+    float y = position.y;
+    float z = position.z;
 
-    float dx = x-x*y + c*x*x - a*z*x*x;
-    float dy = -y + x*y;
-    float dz = -b*z + a*z*x*x;
+    float dx = a*x + y*z;
+    float dy = b*x + c*y - x*z;
+    float dz = -z - x*y;
 
     vec3  velocity = vec3(dx, dy, dz) * timestep * 0.1;
     velocity = mix(velocity, normalize(velocity), normalizeFactor);

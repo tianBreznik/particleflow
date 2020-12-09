@@ -15,7 +15,7 @@ import {
     WebGLRenderTarget,
     RepeatWrapping,
     Texture,
-    DataTexture, TextureLoader, Color
+    DataTexture, TextureLoader, Color, NormalBlending
 } from "three"
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls"
 import * as Stats from 'stats.js'
@@ -142,6 +142,8 @@ sprite_mat = new ShaderMaterial({
     `,
     fragmentShader: `
         precision highp float;
+        uniform float particle_lifetime;
+        uniform float current_life;
         uniform vec3 color;
         uniform sampler2D sprite_texture;
         uniform bool random_color;
@@ -155,21 +157,28 @@ sprite_mat = new ShaderMaterial({
         float map(float value, float min1, float max1, float min2, float max2) {
             return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
         }
+        float opacified_life;
         
         void main() {
             float red = map(r, 0.0, 255.0, 0.0, 1.0);
             float green = map(g, 0.0, 255.0, 0.0, 1.0);
             float blue = map(b, 0.0, 255.0, 0.0, 1.0);
             vec3 set_color = vec3(red,green,blue);
-            
+            opacified_life = map(particle_lifetime, 0.0, current_life, 0.0, 1.0);
             if(!random_color){
-                gl_FragColor = vec4( color * set_color, vAlpha );
+                gl_FragColor = vec4( color * set_color, opacified_life );
             }
             else{
-                gl_FragColor = vec4( color * vColor, vAlpha );
+                gl_FragColor = vec4( color * vColor, opacified_life );
             }
             gl_FragColor = gl_FragColor * texture2D( sprite_texture, gl_PointCoord );
         }`,
+        blending: NormalBlending,
+        transparent: true,
+        fog: false,
+        lights: false,
+        depthWrite: false,
+        depthTest: false
 
 })
 particle_mat = new ShaderMaterial({
@@ -410,34 +419,6 @@ function getSphere( count, size ){
     return data;
 }
 
-// function animate(){
-//     renderer.setAnimationLoop(() => {
-//         scene.add(particle_mesh)
-//         stats.begin()
-//         timer = new Date().getTime()
-//         perlinTick += 1
-//         particle_position_uniforms["timer"] = {value: timer}
-//         if(parameters["Fading/Dying:"]){
-//             //console.log("Faded")
-//             particle_mat.uniforms["particle_lifetime"] = {value: particle_mat.uniforms["particle_lifetime"].value - 2.0}
-//         }
-//         //console.log(particle_mat.uniforms["r"])
-//         //console.log(particle_mat.uniforms["g"])
-//         //console.log(particle_mat.uniforms["b"])
-//         particle_position_uniforms["perlinTick"] = {value: perlinTick}
-//         gpuCompute.compute()
-//         //console.log(particle_texture_sim.image)
-//         //console.log(positionUniforms["timer"])
-//         updateParticleMesh()
-//         //console.log(particle_mesh.material)
-//         renderer.setRenderTarget(null)
-//         renderer.render(scene, camera)
-//
-//         stats.end()
-//     })
-//
-//     //requestAnimationFrame(render)
-// }
 
 function isSafari() {
     return !!navigator.userAgent.match(/Safari/i) && !navigator.userAgent.match(/Chrome/i)
@@ -468,6 +449,7 @@ function changePointSizeParam(){
     sprite_mat.uniforms["b"] = {value: hexToRgb(parameters["color"]).b}
     sprite_mat.uniforms["random_color"] = {value: parameters["Random Sprite Colors?"]}
     particle_sim_var_uniforms["timestep"] = {value: parameters["Time Step"]}
+    particle_sim_var_uniforms["normalizeFactor"] = {value: parameters["Normalize Factor:"]}
 
     console.log("sprite size" + sprite_mat.uniforms["pointSize"])
 }
@@ -479,23 +461,18 @@ function restartSimulation() {
     particlesLoaded = false
     sceneReady = false
 
-    dispose_particles()
     dispose_buffers()
 
     sprite_mat.uniforms["r"] = {value: hexToRgb(parameters["color"]).r}
     sprite_mat.uniforms["g"] = {value: hexToRgb(parameters["color"]).g}
     sprite_mat.uniforms["b"] = {value: hexToRgb(parameters["color"]).b}
     sprite_mat.uniforms["pointSize"] = {value: parameters["Sprite Texture Size"]}
-    //particle_mat.uniforms["particle_lifetime"].value = parameters["Particle Life-time(ms)"]
+    particle_mat.uniforms["particle_lifetime"].value = parameters["Particle Life-time(ms)"]
+    sprite_mat.uniforms["particle_lifetime"].value = parameters["Particle Life-time(ms)"]
     console.log("sprite size" + sprite_mat.uniforms["pointSize"].value)
     fetchAndStart()
 }
 
-
-function dispose_particles() {
-    buff_geometry.dispose()
-    particle_mat.dispose()
-}
 
 function fetchAndStart() {
 
@@ -548,6 +525,7 @@ function fetchAndPlay(particleNoisePos: Float32Array, particleBufferWidth: numbe
 
     //console.log(document.getElementById("simulation_shader").textContent)
     particle_position_var_sim = gpuCompute.addVariable("textureVelocity", attractor_shader, particle_texture_sim)
+
     particle_position_var_sim.wrapS = RepeatWrapping
     particle_position_var_sim.wrapT = RepeatWrapping
 
@@ -558,6 +536,7 @@ function fetchAndPlay(particleNoisePos: Float32Array, particleBufferWidth: numbe
 
     particle_sim_var_uniforms = particle_position_var_sim.material.uniforms
     particle_sim_var_uniforms["timestep"] = {value:0.1}
+    particle_sim_var_uniforms["normalizeFactor"] = {value: parameters["Normalize Factor:"]}
 
     gpuCompute.setVariableDependencies( particle_position_var, [ particle_position_var, particle_position_var_sim ] )
     gpuCompute.setVariableDependencies( particle_position_var_sim, [ particle_position_var, particle_position_var_sim ] )
@@ -596,8 +575,11 @@ function fetchAndPlay(particleNoisePos: Float32Array, particleBufferWidth: numbe
     })
 
 }
+
 function dispose_buffers() {
     perlinTick = 0
+    buff_geometry.dispose()
+    particle_mat.dispose()
     particle_position_var.renderTargets.forEach((rt: WebGLRenderTarget) => {
         rt.texture.dispose()
         rt.dispose()
@@ -611,8 +593,8 @@ function dispose_buffers() {
 
 function fetchAttractorShader() {
     switch(parameters["Attractor"]) {
-        case `${velocity_attractors.aizawaAttractor}`:
-            return document.getElementById("aizawa_attractor_shader").textContent
+        case `${velocity_attractors.halvorsenAttractor}`:
+            return document.getElementById("halvorsen_attractor_shader").textContent
 
         case `${velocity_attractors.thomasAttractor}`:
             return document.getElementById("thomas_attractor_shader").textContent
@@ -620,8 +602,11 @@ function fetchAttractorShader() {
         case `${velocity_attractors.chenAttractor}`:
             return document.getElementById("chen_attractor_shader").textContent
 
-        case `${velocity_attractors.lotkaVolteraAttractor}`:
-            return document.getElementById("lotka_voltera_attractor_shader").textContent
+        case `${velocity_attractors.luChenAttractor}`:
+            return document.getElementById("lu_chen_attractor_shader").textContent
+
+        case `${velocity_attractors.fourWingAttractor}`:
+            return document.getElementById("four_wing_attractor_shader").textContent
 
         case `${velocity_attractors.layerAttractor}`:
             return document.getElementById("layer_attractor_shader").textContent

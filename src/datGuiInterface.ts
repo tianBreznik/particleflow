@@ -2,10 +2,11 @@ import {GUI} from "dat.gui";
 import {Vector3} from "three"
 
 export enum velocity_attractors {
-    "aizawaAttractor",
+    "halvorsenAttractor",
     "thomasAttractor",
     "chenAttractor",
-    "lotkaVolteraAttractor",
+    "luChenAttractor",
+    "fourWingAttractor",
     "layerAttractor"
 }
 
@@ -23,6 +24,7 @@ export const parameters = {
 
     "Time Step": 0.1,
     "Point Size": 1.0,
+    "Normalize Factor:": 1.0,
     "Particle Life-time(ms)": 1200.0,
     "Fading/Dying:": false,
     "color": "#08e1ff",
@@ -48,6 +50,7 @@ export function buildInterface(onChange: () => void, restartSimulation: () => vo
     changeableFolder.add(parameters, "Time Step", 0.01, 1, 0.001).onChange(onChange)
     changeableFolder.add(parameters, "Point Size", 1.0, 5.0, 1).onChange(onChange)
     changeableFolder.add(parameters, "Fading/Dying:").onChange(onChange)
+    changeableFolder.add(parameters, "Normalize Factor:",0.0, 1.0, 0.1).onChange(onChange)
     //changeableFolder.addColor(parameters, "color").onChange(onChange)
 
     const restartFolder = gui.addFolder("Static Parameters (Change and restart simulation)")
@@ -57,10 +60,11 @@ export function buildInterface(onChange: () => void, restartSimulation: () => vo
         "Sphere": initial_geometry.sphere
     })
     restartFolder.add(parameters,"Attractor", {
-        "Aizawa Attractor": velocity_attractors.aizawaAttractor,
+        "Halvorsen Attractor": velocity_attractors.halvorsenAttractor,
         "Thomas Attractor": velocity_attractors.thomasAttractor,
         "Chen Attractor": velocity_attractors.chenAttractor,
-        "Lotka Voltera Attractor": velocity_attractors.lotkaVolteraAttractor,
+        "Lu Chen Attractor": velocity_attractors.luChenAttractor,
+        "Four Wing Attractor": velocity_attractors.fourWingAttractor,
         "Layer Attractor":velocity_attractors.layerAttractor
     })
     restartFolder.add(parameters,"Base Noise Version", {
