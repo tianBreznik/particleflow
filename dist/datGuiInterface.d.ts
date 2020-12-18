@@ -1,9 +1,10 @@
 export declare enum velocity_attractors {
-    "aizawaAttractor" = 0,
+    "halvorsenAttractor" = 0,
     "thomasAttractor" = 1,
     "chenAttractor" = 2,
-    "lotkaVolteraAttractor" = 3,
-    "layerAttractor" = 4
+    "luChenAttractor" = 3,
+    "fourWingAttractor" = 4,
+    "layerAttractor" = 5
 }
 export declare enum initial_geometry {
     "cube" = 0,
@@ -17,6 +18,7 @@ export declare enum noise_simulations {
 export declare const parameters: {
     "Time Step": number;
     "Point Size": number;
+    "Normalize Factor:": number;
     "Particle Life-time(ms)": number;
     "Fading/Dying:": boolean;
     color: string;
