@@ -22,11 +22,11 @@ export enum noise_simulations {
 }
 export const parameters = {
 
-    "Time Step": 0.1,
-    "Point Size": 1.0,
-    "Normalize Factor:": 0.1,
+    "Time Step✨": 0.1,
+    "Point Size🍆": 1.0,
+    "Normalize Factor✨:": 0.1,
     "Particle Life-time(ms)": 1200.0,
-    "Fading/Dying:": false,
+    "Fading/Dying🥺:": false,
     "color": "#000000",
     //"Particle color": - todo
 
@@ -38,7 +38,7 @@ export const parameters = {
     "Random Sprite Colors?":false,
     "Sprite textures?": true,
     "Sprite Texture Size": 1.0,
-    "INCLUDE ATTRACTOR?":true,
+    "INCLUDE ATTRACTOR?🌀":true,
     "Background Color": "#ffffff"
 }
 
@@ -77,7 +77,7 @@ export function buildInterface(onChange: () => void, restartSimulation: () => vo
         "Curl Noise": noise_simulations.curlNoise,
         "Classic Perlin Noise":noise_simulations.classicPerlin
     })
-    restartFolder.add(parameters,"INCLUDE ATTRACTOR?")
+    restartFolder.add(parameters,"INCLUDE ATTRACTOR?🌀")
     restartFolder.add(parameters, "Texture Size (Particles)", {
         "1": 1,
         "4": 2,
