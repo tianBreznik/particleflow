@@ -187,7 +187,7 @@ particle_mat = new ShaderMaterial({
             value: null,
         },
         pointSize: {
-            value:  parameters["Point Size"] * 1.0
+            value:  parameters["Point Size🍆"] * 1.0
         },//temp - experiment
         particle_lifetime:{
             value: parameters["Particle Life-time(ms)"]
@@ -442,14 +442,14 @@ function onChange() {
 }
 
 function changePointSizeParam(){
-    particle_mat.uniforms["pointSize"] = {value: parameters["Point Size"] * 1.0}
+    particle_mat.uniforms["pointSize"] = {value: parameters["Point Size🍆"] * 1.0}
     sprite_mat.uniforms["pointSize"] = {value: parameters["Sprite Texture Size"] * 1.0}
     sprite_mat.uniforms["r"] = {value: hexToRgb(parameters["color"]).r}
     sprite_mat.uniforms["g"] = {value: hexToRgb(parameters["color"]).g}
     sprite_mat.uniforms["b"] = {value: hexToRgb(parameters["color"]).b}
     sprite_mat.uniforms["random_color"] = {value: parameters["Random Sprite Colors?"]}
-    particle_sim_var_uniforms["timestep"] = {value: parameters["Time Step"]}
-    particle_sim_var_uniforms["normalizeFactor"] = {value: parameters["Normalize Factor:"]}
+    particle_sim_var_uniforms["timestep"] = {value: parameters["Time Step✨"]}
+    particle_sim_var_uniforms["normalizeFactor"] = {value: parameters["Normalize Factor✨:"]}
 
     //console.log("sprite size" + sprite_mat.uniforms["pointSize"])
 }
@@ -521,7 +521,7 @@ function fetchAndPlay(particleNoisePos: Float32Array, particleBufferWidth: numbe
     particle_position_uniforms["initialPositions"] = {value: particle_texture_init_position}
     particle_position_uniforms["perlinTick"] = {value: perlinTick}
     particle_position_uniforms["life_time"] = {value: parameters["Particle Life-time(ms)"]}
-    particle_position_uniforms["includeVelocity"] = {value: parameters["INCLUDE ATTRACTOR?"]}
+    particle_position_uniforms["includeVelocity"] = {value: parameters["INCLUDE ATTRACTOR?🌀"]}
 
     //console.log(document.getElementById("simulation_shader").textContent)
     particle_position_var_sim = gpuCompute.addVariable("textureVelocity", attractor_shader, particle_texture_sim)
@@ -536,7 +536,7 @@ function fetchAndPlay(particleNoisePos: Float32Array, particleBufferWidth: numbe
 
     particle_sim_var_uniforms = particle_position_var_sim.material.uniforms
     particle_sim_var_uniforms["timestep"] = {value:0.1}
-    particle_sim_var_uniforms["normalizeFactor"] = {value: parameters["Normalize Factor:"]}
+    particle_sim_var_uniforms["normalizeFactor"] = {value: parameters["Normalize Factor✨:"]}
 
     gpuCompute.setVariableDependencies( particle_position_var, [ particle_position_var, particle_position_var_sim ] )
     gpuCompute.setVariableDependencies( particle_position_var_sim, [ particle_position_var, particle_position_var_sim ] )
@@ -554,7 +554,7 @@ function fetchAndPlay(particleNoisePos: Float32Array, particleBufferWidth: numbe
         timer = new Date().getTime()
         perlinTick += 1
         particle_position_uniforms["timer"] = {value: timer}
-        if(parameters["Fading/Dying:"]){
+        if(parameters["Fading/Dying🥺:"]){
             //console.log("Faded")
             particle_mat.uniforms["particle_lifetime"] = {value: particle_mat.uniforms["particle_lifetime"].value - 2.0}
             sprite_mat.uniforms["particle_lifetime"] = {value: particle_mat.uniforms["particle_lifetime"].value - 2.0}
