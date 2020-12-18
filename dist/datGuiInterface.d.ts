@@ -16,11 +16,11 @@ export declare enum noise_simulations {
     "classicPerlin" = 2
 }
 export declare const parameters: {
-    "Time Step": number;
-    "Point Size": number;
-    "Normalize Factor:": number;
+    "Time Step\u2728": number;
+    "Point Size\uD83C\uDF46": number;
+    "Normalize Factor\u2728:": number;
     "Particle Life-time(ms)": number;
-    "Fading/Dying:": boolean;
+    "Fading/Dying\uD83E\uDD7A:": boolean;
     color: string;
     Attractor: string;
     "Base Noise Version": string;
@@ -29,7 +29,7 @@ export declare const parameters: {
     "Random Sprite Colors?": boolean;
     "Sprite textures?": boolean;
     "Sprite Texture Size": number;
-    "INCLUDE ATTRACTOR?": boolean;
+    "INCLUDE ATTRACTOR?\uD83C\uDF00": boolean;
     "Background Color": string;
 };
 export declare function buildInterface(onChange: () => void, restartSimulation: () => void): void;
