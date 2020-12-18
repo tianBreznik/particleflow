@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Particle Flow</title>
+    <link rel="icon" type="image/jpg" href="/murimacek.jpg"/>
     <style>
         body { margin: 0; }
         canvas { display: block; }
@@ -24,10 +25,15 @@
             padding: 10px;
             color: #000000;
             text-align: justify;
-            font-size: 11px;
+            font-size: 12px;
             /* font-family: Gigi; */
             font-family: Bahnschrift;
         }
+
+        #nametag {
+            font-family: Gigi;
+        }
+
     </style>
 </head>
 <body>
@@ -649,8 +655,8 @@ void main() {
     <p>This is a particle system based on a Perlin Noise vector field, implemented with FBO's</p>
     <p>Currently there are 1024 * 1024 particles, there will be more. The system is running on a Razer Blade 2016 with an NVIDIA MX960</p>
     <p>Based on <a href="http://www.subimago.com/?action=viewArticle&articleId=45" target=_blank>experiment</a> by <a href="https://twitter.com/kenirdayaz" target=_blank>@kenirdayaz</a>.</p>
-    <p>I'm available at <a href="https://github.com/tianBreznik" target=_blank>@tianBreznik</a>. And so is this project <a href="https://github.com/tianBreznik/particleFlow" target=_blank>@particleflowf</a> </p>
-    <h3>!!! (click and drag to rotate, scroll to zoom in/out) !!!</h3>
+    <p>I'm available at <a id="nametag" href="https://github.com/tianBreznik" target=_blank>@tianBreznik</a>. And so is this project <a href="https://github.com/tianBreznik/particleFlow" target=_blank>@particleflowf</a> </p>
+    <h3>!!! 🥺 (click and drag to rotate, scroll to zoom in/out) 🥺 !!!</h3>
 </div>
 
 </body>
