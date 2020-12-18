@@ -24,22 +24,22 @@ export const parameters = {
 
     "Time Step": 0.1,
     "Point Size": 1.0,
-    "Normalize Factor:": 1.0,
+    "Normalize Factor:": 0.1,
     "Particle Life-time(ms)": 1200.0,
     "Fading/Dying:": false,
-    "color": "#08e1ff",
+    "color": "#000000",
     //"Particle color": - todo
 
     //restart
-    "Attractor": `${velocity_attractors.chenAttractor}`,
+    "Attractor": `${velocity_attractors.thomasAttractor}`,
     "Base Noise Version": `${noise_simulations.simplexNoise}`,
     "Start in the shape of:": `${initial_geometry.sphere}`,
     "Texture Size (Particles)": "512",
-    "Random Sprite Colors?":true,
-    "Sprite textures?": false,
-    "Sprite Texture Size": 3.5,
-    "INCLUDE ATTRACTOR?":false,
-    "Background Color": "#080808"
+    "Random Sprite Colors?":false,
+    "Sprite textures?": true,
+    "Sprite Texture Size": 1.0,
+    "INCLUDE ATTRACTOR?":true,
+    "Background Color": "#ffffff"
 }
 
 export function buildInterface(onChange: () => void, restartSimulation: () => void) {
@@ -52,6 +52,11 @@ export function buildInterface(onChange: () => void, restartSimulation: () => vo
     changeableFolder.add(parameters, "Fading/Dying:").onChange(onChange)
     changeableFolder.add(parameters, "Normalize Factor:",0.0, 1.0, 0.1).onChange(onChange)
     //changeableFolder.addColor(parameters, "color").onChange(onChange)
+
+    const spriteFolder = gui.addFolder("Sprite Settings/Changeable")
+    spriteFolder.add(parameters, "Random Sprite Colors?").onChange(onChange)
+    spriteFolder.addColor(parameters, "color").onChange(onChange)
+    spriteFolder.add(parameters, "Sprite Texture Size", 0.1, 10, 0.5).onChange(onChange)
 
     const restartFolder = gui.addFolder("Static Parameters (Change and restart simulation)")
     restartFolder.addColor(parameters, "Background Color")
@@ -91,11 +96,6 @@ export function buildInterface(onChange: () => void, restartSimulation: () => vo
     //    console.log(parameters.color)
     //})
 
-    const spriteFolder = gui.addFolder("Sprite Settings/Changeable")
-    spriteFolder.add(parameters, "Random Sprite Colors?").onChange(onChange)
-    spriteFolder.addColor(parameters, "color").onChange(onChange)
-    spriteFolder.add(parameters, "Sprite Texture Size", 0.1, 10, 0.5).onChange(onChange)
-
 
 
     const restartButton = {
@@ -105,6 +105,7 @@ export function buildInterface(onChange: () => void, restartSimulation: () => vo
 
     restartFolder.open()
     changeableFolder.open()
+    spriteFolder.open()
 }
 
 

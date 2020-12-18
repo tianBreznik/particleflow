@@ -79,7 +79,7 @@ sprite_mat = new ShaderMaterial({
             value: parameters["Random Sprite Colors?"],
         },
         pointSize: {
-            value:  parameters["Sprite Texture Size"] * 3.0,
+            value:  parameters["Sprite Texture Size"] * 1.0,
         },
         sprite_texture: {
             value: new TextureLoader().load("https://threejs.org/examples/textures/sprites/ball.png")
@@ -451,7 +451,7 @@ function changePointSizeParam(){
     particle_sim_var_uniforms["timestep"] = {value: parameters["Time Step"]}
     particle_sim_var_uniforms["normalizeFactor"] = {value: parameters["Normalize Factor:"]}
 
-    console.log("sprite size" + sprite_mat.uniforms["pointSize"])
+    //console.log("sprite size" + sprite_mat.uniforms["pointSize"])
 }
 
 
