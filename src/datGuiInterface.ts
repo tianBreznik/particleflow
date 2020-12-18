@@ -47,10 +47,10 @@ export function buildInterface(onChange: () => void, restartSimulation: () => vo
 
 
     const changeableFolder = gui.addFolder("Changeable")
-    changeableFolder.add(parameters, "Time Step", 0.01, 1, 0.001).onChange(onChange)
-    changeableFolder.add(parameters, "Point Size", 1.0, 5.0, 1).onChange(onChange)
-    changeableFolder.add(parameters, "Fading/Dying:").onChange(onChange)
-    changeableFolder.add(parameters, "Normalize Factor:",0.0, 1.0, 0.1).onChange(onChange)
+    changeableFolder.add(parameters, "Time Step✨", 0.01, 1, 0.001).onChange(onChange)
+    changeableFolder.add(parameters, "Point Size🍆", 1.0, 5.0, 1).onChange(onChange)
+    changeableFolder.add(parameters, "Fading/Dying🥺:").onChange(onChange)
+    changeableFolder.add(parameters, "Normalize Factor✨:",0.0, 1.0, 0.1).onChange(onChange)
     //changeableFolder.addColor(parameters, "color").onChange(onChange)
 
     const spriteFolder = gui.addFolder("Sprite Settings/Changeable")
