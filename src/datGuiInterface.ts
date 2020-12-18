@@ -35,7 +35,7 @@ export const parameters = {
     "Base Noise Version": `${noise_simulations.simplexNoise}`,
     "Start in the shape of:": `${initial_geometry.sphere}`,
     "Texture Size (Particles)": "512",
-    "Random Sprite Colors?":false,
+    "Random Sprite Colors?🚨":false,
     "Sprite textures?": true,
     "Sprite Texture Size": 1.0,
     "INCLUDE ATTRACTOR?🌀":true,
@@ -54,7 +54,7 @@ export function buildInterface(onChange: () => void, restartSimulation: () => vo
     //changeableFolder.addColor(parameters, "color").onChange(onChange)
 
     const spriteFolder = gui.addFolder("Sprite Settings/Changeable")
-    spriteFolder.add(parameters, "Random Sprite Colors?").onChange(onChange)
+    spriteFolder.add(parameters, "Random Sprite Colors?🚨").onChange(onChange)
     spriteFolder.addColor(parameters, "color").onChange(onChange)
     spriteFolder.add(parameters, "Sprite Texture Size", 0.1, 10, 0.5).onChange(onChange)
 

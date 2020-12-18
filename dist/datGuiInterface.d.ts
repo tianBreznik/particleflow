@@ -26,7 +26,7 @@ export declare const parameters: {
     "Base Noise Version": string;
     "Start in the shape of:": string;
     "Texture Size (Particles)": string;
-    "Random Sprite Colors?": boolean;
+    "Random Sprite Colors?\uD83D\uDEA8": boolean;
     "Sprite textures?": boolean;
     "Sprite Texture Size": number;
     "INCLUDE ATTRACTOR?\uD83C\uDF00": boolean;

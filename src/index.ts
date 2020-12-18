@@ -73,10 +73,10 @@ sprite_mat = new ShaderMaterial({
             value: null,
         },
         color: {
-            value: new Color("0xffffff"),
+            value: new Color("#ffffff"),
         },
         random_color:{
-            value: parameters["Random Sprite Colors?"],
+            value: parameters["Random Sprite Colors?🚨"],
         },
         pointSize: {
             value:  parameters["Sprite Texture Size"] * 1.0,
@@ -447,7 +447,7 @@ function changePointSizeParam(){
     sprite_mat.uniforms["r"] = {value: hexToRgb(parameters["color"]).r}
     sprite_mat.uniforms["g"] = {value: hexToRgb(parameters["color"]).g}
     sprite_mat.uniforms["b"] = {value: hexToRgb(parameters["color"]).b}
-    sprite_mat.uniforms["random_color"] = {value: parameters["Random Sprite Colors?"]}
+    sprite_mat.uniforms["random_color"] = {value: parameters["Random Sprite Colors?🚨"]}
     particle_sim_var_uniforms["timestep"] = {value: parameters["Time Step✨"]}
     particle_sim_var_uniforms["normalizeFactor"] = {value: parameters["Normalize Factor✨:"]}
 
